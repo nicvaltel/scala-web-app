@@ -17,7 +17,6 @@ class Email private(private val emailRaw: String):
   override def toString = s"Email: $rawEmail"
 
 object Email:
-  // def apply(emailRaw: String) = new Email(emailRaw)
   def mkEmail(emailRaw: String): Either[List[EmailValidationErr], Email] =
     def constructor = (email: String) => new Email(email)
     val regexValidation: Validation[EmailValidationErr, String] = regexMatches(
@@ -30,7 +29,6 @@ class Password private(private val passwordRaw: String):
   override def toString = s"Password: $rawPassword"
 
 object Password:
-  // def apply(passwordRaw: String) = new Password(passwordRaw)
   def mkPassword(passwordRaw: String): Either[List[PasswordValidationErr], Password] =
     def constructor = (pass: String) => new Password(pass)
     val validations: List[Validation[PasswordValidationErr, String]] = List(
@@ -50,14 +48,14 @@ trait AuthRepo:
 trait EmailVerficationNotif:
   def notifyEmailVerification(email: Email, vCode: VerificationCode): Unit
 
-class Session
-
-trait AuthSession extends Session, AuthRepo, EmailVerficationNotif:
+abstract class Session extends AuthRepo, EmailVerficationNotif:
   def register(auth: Auth): Either[RegistrationError, Unit] =
     val eitherVCode = addAuth(auth)
     eitherVCode match
       case Left(err) => Left(err)
       case Right(vCode) => Right(notifyEmailVerification(auth.email, vCode))
+
+class SessionIO extends Session, AuthRepoIO, EmailVerficationNotifIO
 
 trait AuthRepoIO extends Session, AuthRepo:
   override def addAuth(auth: Auth) =
@@ -67,7 +65,6 @@ trait AuthRepoIO extends Session, AuthRepo:
 trait EmailVerficationNotifIO extends EmailVerficationNotif:
   override def notifyEmailVerification(email: Email, vcode: VerificationCode) =
     println(s"Notify ${email.rawEmail} - $vcode")
-
 
 enum RegistrationError:
   case EmailTaken
@@ -89,9 +86,7 @@ def testAuth():Unit =
   println(mail)
   println(pass)
 
-  val session = new Session with AuthRepoIO with EmailVerficationNotifIO with AuthSession
-
-
+  val session = new SessionIO
   val email = Email.mkEmail("test@example.md").toOption.getOrElse(???)
   println(email)
   val password = Password.mkPassword("1234ASDFqwerty").toOption.getOrElse(???)
