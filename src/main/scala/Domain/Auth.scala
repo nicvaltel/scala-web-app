@@ -42,6 +42,33 @@ object Password:
     validate(constructor, validations, passwordRaw)
 
 
+type VerificationCode = String
+
+trait AuthRepo:
+  def addAuth(auth: Auth): Either[RegistrationError, VerificationCode]
+
+trait EmailVerficationNotif:
+  def notifyEmailVerification(email: Email, vCode: VerificationCode): Unit
+
+class Session
+
+trait AuthSession extends Session, AuthRepo, EmailVerficationNotif:
+  def register(auth: Auth): Either[RegistrationError, Unit] =
+    val eitherVCode = addAuth(auth)
+    eitherVCode match
+      case Left(err) => Left(err)
+      case Right(vCode) => Right(notifyEmailVerification(auth.email, vCode))
+
+trait AuthRepoIO extends Session, AuthRepo:
+  override def addAuth(auth: Auth) =
+    println(s"adding auth: ${auth.email.rawEmail}")
+    Right("fake verification code")
+
+trait EmailVerficationNotifIO extends EmailVerficationNotif:
+  override def notifyEmailVerification(email: Email, vcode: VerificationCode) =
+    println(s"Notify ${email.rawEmail} - $vcode")
+
+
 enum RegistrationError:
   case EmailTaken
 
@@ -61,3 +88,13 @@ def testAuth():Unit =
   val pass = Password.mkPassword("22asdfQWE")
   println(mail)
   println(pass)
+
+  val session = new Session with AuthRepoIO with EmailVerficationNotifIO with AuthSession
+
+
+  val email = Email.mkEmail("test@example.md").toOption.getOrElse(???)
+  println(email)
+  val password = Password.mkPassword("1234ASDFqwerty").toOption.getOrElse(???)
+  println(password)
+  val auth = new Auth(email, password)
+  session.register(auth)
