@@ -46,7 +46,6 @@ trait AuthRepoInMemory extends A.AuthRepo:
           Right(())
     }
 
-
   override def findUserByAuth(auth: A.Auth): Option[(A.UserId, Boolean)] =
     InMemory.state.auths.find((_,a) => a == auth).map((uId,_) =>
       val isVerified = InMemory.state.verifiedEmails.contains(auth.email)
@@ -62,7 +61,6 @@ trait EmailVerficationNotifInMemory extends A.EmailVerficationNotif:
       InMemory.state.notifications += (email -> vCode)
     }
 
-
 trait SessionRepoInMemory extends A.SessionRepo:
   val generexSession = new Generex("[A-Za-z0-9]{16}")
 
@@ -77,22 +75,29 @@ trait SessionRepoInMemory extends A.SessionRepo:
     InMemory.state.sessions.get(sId)
     
 
-private def getNotificationsForEmail(email: A.Email): Option[A.VerificationCode] =
+def getNotificationsForEmail(email: A.Email): Option[A.VerificationCode] =
   InMemory.state.notifications.get(email)
 
-class SessionInMemory extends AuthRepoInMemory, EmailVerficationNotifInMemory, SessionRepoInMemory
+class SessionInMemory extends A.Session, AuthRepoInMemory, EmailVerficationNotifInMemory, SessionRepoInMemory
 
 def testInMemory() =
   println("TESTIN IN MEMORY:")
 
-  val email = A.Email.mkEmail("test@example.md").getOrElse(???)
-  val pass = A.Password.mkPassword("1234567AAAaaa").getOrElse(???)
-  val auth = A.Auth(email, pass)
+  val email1 = A.Email.mkEmail("test@example.md").getOrElse(???)
+  val pass1 = A.Password.mkPassword("1234567AAAaaa").getOrElse(???)
+  val auth1 = new A.Auth(email1, pass1)
   
+  val email2 = A.Email.mkEmail("test@example.md").getOrElse(???)
+  val pass2 = A.Password.mkPassword("1234567AAAaaa").getOrElse(???)
+  val auth2 = new A.Auth(email2, pass2)
+  
+
   val s = new SessionInMemory
-  val vCode = s.addAuth(auth).getOrElse(???)
+  println(s.register(auth1))
+
+  val vCode = s.addAuth(auth2)
   println(vCode)
-  val pairUIdVerified = s.findUserByAuth(auth).getOrElse(???)
+  val pairUIdVerified = s.findUserByAuth(auth2).getOrElse(???)
   println(pairUIdVerified)
   val uId = pairUIdVerified(0)
   println(s.findEmailFromUserId(uId))

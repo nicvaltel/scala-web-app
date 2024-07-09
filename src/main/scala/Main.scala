@@ -1,4 +1,4 @@
-import Lib.routine
+import Lib.*
 import Domain.Auth
 import Domain.Validation
 import Adapter.InMemory.Auth as M
@@ -7,3 +7,4 @@ import Adapter.InMemory.Auth as M
   Validation.testValidations()
   Auth.testAuth()
   M.testInMemory()
+  Lib.action()

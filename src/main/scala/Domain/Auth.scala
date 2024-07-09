@@ -78,7 +78,7 @@ abstract class Session extends AuthRepo, EmailVerficationNotif, SessionRepo:
 
 class SessionIO extends Session, AuthRepoIO, EmailVerficationNotifIO, SessionRepoIO
 
-trait AuthRepoIO extends Session, AuthRepo:
+trait AuthRepoIO extends AuthRepo:
   override def addAuth(auth: Auth) =
     println(s"adding auth: ${auth.email.rawEmail}")
     Right("fake verification code")
@@ -91,7 +91,7 @@ trait EmailVerficationNotifIO extends EmailVerficationNotif:
   override def notifyEmailVerification(email: Email, vCode: VerificationCode) =
     println(s"Notify ${email.rawEmail} - $vCode")
 
-trait SessionRepoIO extends Session, SessionRepo:
+trait SessionRepoIO extends SessionRepo:
   override def newSession(uId: UserId) = ???
   override def findUserBySessionId(sId: SessionId): Option[UserId] = ???
 
@@ -129,3 +129,7 @@ def testAuth():Unit =
   println(password)
   val auth = new Auth(email, password)
   session.register(auth)
+  println("OKAY111")
+
+
+
