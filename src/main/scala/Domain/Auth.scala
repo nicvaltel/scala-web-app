@@ -3,6 +3,11 @@ package Domain.Auth
 import Domain.Validation.*
 import scala.util.matching.Regex
 
+type UserId = Int
+
+type SessionId = String
+
+type VerificationCode = String
 
 class Auth(
   val email: Email,
@@ -10,7 +15,6 @@ class Auth(
 
   override def toString = s"Auth: email = $email, password = $password"
 end Auth
-
 
 class Email private(private val emailRaw: String):  
   def rawEmail = emailRaw
@@ -39,32 +43,57 @@ object Password:
     )
     validate(constructor, validations, passwordRaw)
 
-
-type VerificationCode = String
-
 trait AuthRepo:
   def addAuth(auth: Auth): Either[RegistrationError, VerificationCode]
+  def setEmailAsVerified(vCode: VerificationCode): Either[EmailVerficationError, Unit]
+  def findUserByAuth(auth: Auth): Option[(UserId, Boolean)]
+  def findEmailFromUserId(uId: UserId): Option[Email]  
 
 trait EmailVerficationNotif:
   def notifyEmailVerification(email: Email, vCode: VerificationCode): Unit
 
-abstract class Session extends AuthRepo, EmailVerficationNotif:
+trait SessionRepo:
+  def newSession(uId: UserId): SessionId
+  def findUserBySessionId(sId: SessionId): Option[UserId]
+
+abstract class Session extends AuthRepo, EmailVerficationNotif, SessionRepo:
   def register(auth: Auth): Either[RegistrationError, Unit] =
     val eitherVCode = addAuth(auth)
     eitherVCode match
       case Left(err) => Left(err)
       case Right(vCode) => Right(notifyEmailVerification(auth.email, vCode))
+  
+  def verifyEmail: VerificationCode => Either[EmailVerficationError, Unit] = setEmailAsVerified
 
-class SessionIO extends Session, AuthRepoIO, EmailVerficationNotifIO
+  def login(auth: Auth): Either[LoginError, SessionId] = 
+    findUserByAuth(auth) match
+      case None => Left(LoginError.InvalidAuth)
+      case Some (_, false) => Left(LoginError.EmailNotVerified)
+      case Some(uId, true) => Right(newSession(uId))
+
+  def resolveSessionId: SessionId => Option[UserId] = findUserBySessionId
+
+  def getUser: UserId => Option[Email] = findEmailFromUserId
+
+
+class SessionIO extends Session, AuthRepoIO, EmailVerficationNotifIO, SessionRepoIO
 
 trait AuthRepoIO extends Session, AuthRepo:
   override def addAuth(auth: Auth) =
     println(s"adding auth: ${auth.email.rawEmail}")
     Right("fake verification code")
+  override def setEmailAsVerified(vCode: VerificationCode) = ???
+  override def findUserByAuth(auth: Auth) = ???
+  override def findEmailFromUserId(uId: UserId): Option[Email] = ???
+
 
 trait EmailVerficationNotifIO extends EmailVerficationNotif:
-  override def notifyEmailVerification(email: Email, vcode: VerificationCode) =
-    println(s"Notify ${email.rawEmail} - $vcode")
+  override def notifyEmailVerification(email: Email, vCode: VerificationCode) =
+    println(s"Notify ${email.rawEmail} - $vCode")
+
+trait SessionRepoIO extends Session, SessionRepo:
+  override def newSession(uId: UserId) = ???
+  override def findUserBySessionId(sId: SessionId): Option[UserId] = ???
 
 enum RegistrationError:
   case EmailTaken
@@ -77,6 +106,13 @@ enum PasswordValidationErr:
   case MustContainUpperCase
   case MustContainLowerCase
   case MustContainNumber
+
+enum EmailVerficationError:
+  case InvalidCode
+
+enum LoginError:
+  case InvalidAuth
+  case EmailNotVerified
 
 def testAuth():Unit = 
   println("TEST AUTH:")
