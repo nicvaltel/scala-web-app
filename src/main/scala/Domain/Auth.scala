@@ -2,6 +2,8 @@ package Domain.Auth
 
 import Domain.Validation.*
 import scala.util.matching.Regex
+import com.typesafe.scalalogging.*
+import org.slf4j.LoggerFactory
 
 type UserId = Int
 
@@ -44,8 +46,8 @@ object Password:
     validate(constructor, validations, passwordRaw)
 
 trait AuthRepo:
-  def addAuth(auth: Auth): Either[RegistrationError, VerificationCode]
-  def setEmailAsVerified(vCode: VerificationCode): Either[EmailVerficationError, Unit]
+  def addAuth(auth: Auth): Either[RegistrationError, (UserId, VerificationCode)]
+  def setEmailAsVerified(vCode: VerificationCode): Either[EmailVerficationError, (UserId, Email)]
   def findUserByAuth(auth: Auth): Option[(UserId, Boolean)]
   def findEmailFromUserId(uId: UserId): Option[Email]  
 
@@ -56,20 +58,39 @@ trait SessionRepo:
   def newSession(uId: UserId): SessionId
   def findUserBySessionId(sId: SessionId): Option[UserId]
 
+
+implicit case object CanLogUserId extends CanLog[UserId]:
+  override def logMessage(originalMsg: String, uId: UserId): String = s"[UserId = ${uId}] $originalMsg"
+
+def logWithUserId = Logger.takingImplicit[UserId]("Domain.Auth")
+
+
 abstract class Session extends AuthRepo, EmailVerficationNotif, SessionRepo:
   def register(auth: Auth): Either[RegistrationError, Unit] =
-    val eitherVCode = addAuth(auth)
-    eitherVCode match
+    addAuth(auth) match
       case Left(err) => Left(err)
-      case Right(vCode) => Right(notifyEmailVerification(auth.email, vCode))
+      case Right((uId,vCode)) => 
+        given userId:UserId = uId
+        logWithUserId.info(s"${auth.email}  is registered successfully")
+        Right(notifyEmailVerification(auth.email, vCode))
   
-  def verifyEmail: VerificationCode => Either[EmailVerficationError, Unit] = setEmailAsVerified
+  def verifyEmail(vCode: VerificationCode): Either[EmailVerficationError, Unit] = 
+    setEmailAsVerified(vCode) match
+      case Left(err) => Left(err)
+      case Right((uId, email)) =>
+        given userId:UserId = uId
+        logWithUserId.info(s"$email  is verified successfully")
+        Right(())
+
 
   def login(auth: Auth): Either[LoginError, SessionId] = 
     findUserByAuth(auth) match
       case None => Left(LoginError.InvalidAuth)
       case Some (_, false) => Left(LoginError.EmailNotVerified)
-      case Some(uId, true) => Right(newSession(uId))
+      case Some(uId, true) =>
+        given userId:UserId = uId
+        logWithUserId.info(s"${auth.email} logged in successfully") 
+        Right(newSession(uId))
 
   def resolveSessionId: SessionId => Option[UserId] = findUserBySessionId
 
@@ -81,7 +102,7 @@ class SessionIO extends Session, AuthRepoIO, EmailVerficationNotifIO, SessionRep
 trait AuthRepoIO extends AuthRepo:
   override def addAuth(auth: Auth) =
     println(s"adding auth: ${auth.email.rawEmail}")
-    Right("fake verification code")
+    Right((777,"fake verification code"))
   override def setEmailAsVerified(vCode: VerificationCode) = ???
   override def findUserByAuth(auth: Auth) = ???
   override def findEmailFromUserId(uId: UserId): Option[Email] = ???

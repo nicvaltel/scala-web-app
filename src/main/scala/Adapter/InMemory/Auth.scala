@@ -22,7 +22,7 @@ private object InMemory:
 trait AuthRepoInMemory extends A.AuthRepo:
   val generexAuth = new Generex("[A-Za-z0-9]{16}")
 
-  override def addAuth(auth: A.Auth): Either[A.RegistrationError, A.VerificationCode] =
+  override def addAuth(auth: A.Auth): Either[A.RegistrationError, (A.UserId, A.VerificationCode)] =
     val vCode = generexAuth.random()
     atomic { implicit txn =>
       val isDuplicate = InMemory.state.auths.exists((_,a) => a.email == auth.email)
@@ -33,17 +33,20 @@ trait AuthRepoInMemory extends A.AuthRepo:
           InMemory.state.auths = (newUserId, auth) :: InMemory.state.auths
           InMemory.state.unverifiedEmails += (vCode -> auth.email)
           InMemory.state.userIdCounter = newUserId
-          Right(vCode)
+          Right(newUserId, vCode)
     }
 
-  override def setEmailAsVerified(vCode: A.VerificationCode): Either[A.EmailVerficationError, Unit] =
+  override def setEmailAsVerified(vCode: A.VerificationCode): Either[A.EmailVerficationError, (A.UserId, A.Email)] =
     atomic { implicit txn =>
       InMemory.state.unverifiedEmails.get(vCode) match
         case None => Left(A.EmailVerficationError.InvalidCode)
         case Some(email) =>
-          InMemory.state.unverifiedEmails -= vCode
-          InMemory.state.verifiedEmails += email
-          Right(())
+          InMemory.state.auths.find((_, a) => a.email == email) match
+            case None => Left(A.EmailVerficationError.InvalidCode)
+            case Some ((uId, auth)) =>
+              InMemory.state.unverifiedEmails -= vCode
+              InMemory.state.verifiedEmails += email
+              Right((uId, email))
     }
 
   override def findUserByAuth(auth: A.Auth): Option[(A.UserId, Boolean)] =

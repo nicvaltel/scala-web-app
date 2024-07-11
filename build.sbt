@@ -9,7 +9,9 @@ lazy val root = project
     scalaVersion := scala3Version,
 
     libraryDependencies += "org.scalameta" %% "munit" % "1.0.0" % Test,
-    libraryDependencies += "org.scala-stm" %% "scala-stm" % "0.11.1",
-    libraryDependencies += "com.github.mifmif" % "generex" % "1.0.2"
+    libraryDependencies += "org.scala-stm" %% "scala-stm" % "0.11.1", // for STM
+    libraryDependencies += "com.github.mifmif" % "generex" % "1.0.2", // for random strings with regex
+    libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5", // scala-logging (slf4j)
+    libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.3.5" // scala-logging (slf4j)
 
   )
