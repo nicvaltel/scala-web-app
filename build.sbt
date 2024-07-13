@@ -13,6 +13,7 @@ lazy val root = project
     libraryDependencies += "com.github.mifmif" % "generex" % "1.0.2", // for random strings with regex
     libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5", // scala-logging (slf4j)
     libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.3.5", // scala-logging (slf4j)
-    libraryDependencies += "org.postgresql" % "postgresql" % "42.7.3"
+    libraryDependencies += "org.postgresql" % "postgresql" % "42.7.3",
+    libraryDependencies += "io.github.cdimascio" % "dotenv-java" % "2.3.2"
 
   )

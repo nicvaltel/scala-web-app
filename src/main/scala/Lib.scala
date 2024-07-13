@@ -4,21 +4,22 @@ import Domain.Auth as A
 import Adapter.InMemory.Auth as M
 import Adapter.PostgreSQL.Auth as PG
 import java.sql.{Connection, DriverManager, Statement}
+import io.github.cdimascio.dotenv.Dotenv
 
 
 class App(pgStatement: Statement) extends A.Session, PG.AuthRepoInMemory(pgStatement), M.EmailVerficationNotifInMemory, M.SessionRepoInMemory
 
 
-def action(): Unit =
+def action(dotenv: Dotenv): Unit =
   println("TESTIN LIB ACTION:")
 
-  val url = "jdbc:postgresql://localhost:6666/scala-web-app"
-  val username = "username"
-  val password = "pass"
+  val url = s"jdbc:postgresql://${dotenv.get("POSTGRES_HOST")}:${dotenv.get("POSTGRES_PORT")}/${dotenv.get("POSTGRES_DB")}"
+  val username = dotenv.get("POSTGRES_USER")
+  val password = dotenv.get("POSTGRES_PASSWORD")
   val pgStatement: Statement = PG.mkStatement(url, username, password)
   val s = new App(pgStatement)
 
-  val email = A.Email.mkEmail("mail7@example.md").getOrElse(???)
+  val email = A.Email.mkEmail("mail8@example.md").getOrElse(???)
   val pass = A.Password.mkPassword("1234567AAAaaa").getOrElse(???)
   val auth = new A.Auth(email, pass)
   
