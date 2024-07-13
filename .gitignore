@@ -33,3 +33,5 @@ metals.sbt
 
 # my
 src/main/scala/Example/
+**/*.env
+db/postgres

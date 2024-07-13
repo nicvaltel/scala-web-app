@@ -1,20 +1,27 @@
 package Lib
 
-import Adapter.InMemory.Auth as M
 import Domain.Auth as A
+import Adapter.InMemory.Auth as M
+import Adapter.PostgreSQL.Auth as PG
+import java.sql.{Connection, DriverManager, Statement}
 
 
-class App extends A.Session, M.AuthRepoInMemory, M.EmailVerficationNotifInMemory, M.SessionRepoInMemory
+class App(pgStatement: Statement) extends A.Session, PG.AuthRepoInMemory(pgStatement), M.EmailVerficationNotifInMemory, M.SessionRepoInMemory
 
 
 def action(): Unit =
   println("TESTIN LIB ACTION:")
 
-  val email = A.Email.mkEmail("mail@example.md").getOrElse(???)
+  val url = "jdbc:postgresql://localhost:6666/scala-web-app"
+  val username = "username"
+  val password = "pass"
+  val pgStatement: Statement = PG.mkStatement(url, username, password)
+  val s = new App(pgStatement)
+
+  val email = A.Email.mkEmail("mail7@example.md").getOrElse(???)
   val pass = A.Password.mkPassword("1234567AAAaaa").getOrElse(???)
   val auth = new A.Auth(email, pass)
   
-  val s = new App
   s.register(auth)
   val vCode = M.getNotificationsForEmail(email).getOrElse(???)
   s.verifyEmail(vCode)

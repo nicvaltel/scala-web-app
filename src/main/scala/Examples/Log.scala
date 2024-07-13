@@ -1,4 +1,4 @@
-package Log
+package Examples.Log
 
 import com.typesafe.scalalogging.*
 import org.slf4j.LoggerFactory
