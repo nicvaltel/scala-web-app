@@ -31,10 +31,9 @@ trait AuthRepoInMemory(statement: Statement) extends A.AuthRepo:
         case uId :: Nil => Right((uId, vCode))
         case _ => throw new RuntimeException("Should not happen: PG doesn't return userId")
     } catch {
-        case e: PSQLException =>
-          if e.getSQLState == "23505" && (e.getServerErrorMessage.getMessage `contains` "auths_email_key")
-            then Left(A.RegistrationError.EmailTaken)
-            else throw new RuntimeException( "Unhandled PG exception: " + e)
+        case e: PSQLException
+          if e.getSQLState == "23505" && (e.getServerErrorMessage.getMessage `contains` "auths_email_key") =>
+             Left(A.RegistrationError.EmailTaken)
         case e => throw new RuntimeException( "Unhandled PG exception: " + e)
     }
 

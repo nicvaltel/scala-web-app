@@ -3,11 +3,13 @@ package Lib
 import Domain.Auth as A
 import Adapter.InMemory.Auth as M
 import Adapter.PostgreSQL.Auth as PG
+import Adapter.Redis.Auth as RDS 
 import java.sql.{Connection, DriverManager, Statement}
 import io.github.cdimascio.dotenv.Dotenv
+import redis.clients.jedis.{Jedis, JedisPool}
 
 
-class App(pgStatement: Statement) extends A.Session, PG.AuthRepoInMemory(pgStatement), M.EmailVerficationNotifInMemory, M.SessionRepoInMemory
+class App(pgStatement: Statement, jedis: Jedis) extends A.Session, PG.AuthRepoInMemory(pgStatement), M.EmailVerficationNotifInMemory, RDS.SessionRepoInRedis(jedis)
 
 
 def action(dotenv: Dotenv): Unit =
@@ -17,9 +19,13 @@ def action(dotenv: Dotenv): Unit =
   val username = dotenv.get("POSTGRES_USER")
   val password = dotenv.get("POSTGRES_PASSWORD")
   val pgStatement: Statement = PG.mkStatement(url, username, password)
-  val s = new App(pgStatement)
+  
+  val jedis: Jedis = (new JedisPool("localhost", 6379)).getResource()
+  
+  val s = new App(pgStatement, jedis)
 
-  val email = A.Email.mkEmail("mail8@example.md").getOrElse(???)
+
+  val email = A.Email.mkEmail("mail12@example.md").getOrElse(???)
   val pass = A.Password.mkPassword("1234567AAAaaa").getOrElse(???)
   val auth = new A.Auth(email, pass)
   

@@ -3,6 +3,7 @@ import Domain.Auth
 import Domain.Validation
 import Adapter.InMemory.Auth as M
 import Examples.Log as Log
+import Adapter.Redis.Auth as RDS 
 import io.github.cdimascio.dotenv.Dotenv
 
 
@@ -14,4 +15,6 @@ import io.github.cdimascio.dotenv.Dotenv
   // Validation.testValidations()
   // Auth.testAuth()
   // M.testInMemory()
+  // RDS.runRedisExample()
+
   Lib.action(dotenv)
